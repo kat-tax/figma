@@ -16,6 +16,7 @@ export {
   getNodeAttrs,
   getComponentInfo,
   getComponentPropName,
+  getComponentFrameSize,
   getComponentInstanceInfo,
   getComponentCustomReaction,
   getComponentPressReaction,

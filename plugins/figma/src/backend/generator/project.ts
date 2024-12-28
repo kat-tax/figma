@@ -7,7 +7,7 @@ import * as consts from 'config/consts';
 import * as config from 'backend/utils/config';
 import * as parser from 'backend/parser/lib';
 
-import {bundle as generateBundle} from './service';
+import {generateBundle} from './lib/generateBundle';
 import {generateIndex} from './lib/generateIndex';
 import {generateTheme} from './lib/generateTheme';
 
@@ -71,7 +71,7 @@ export function build(release: ProjectRelease) {
 
       for await (const component of exportNodes) {
         try {
-          const {bundle} = await generateBundle(component, config.state);
+          const bundle = await generateBundle(component, {...config.state}, true);
           if (bundle.code) {
             bundle.assets?.forEach(asset => assets.set(asset.hash, asset));
             componentInfo[bundle.key] = bundle.info;
@@ -83,7 +83,7 @@ export function build(release: ProjectRelease) {
               bundle.story,
               bundle.docs,
             ]);
-            // console.log('[project/bundle]', bundle);
+            console.log('>> [project/bundle]', bundle);
           }
         } catch (e) {
           console.error('Failed to export', component, e);
@@ -133,7 +133,7 @@ export function build(release: ProjectRelease) {
         assets: buildAssets,
       };
 
-      // console.log('[project/build]', build, projectConfig);
+      console.log('>> [project/build]', build, info);
 
       emit<EventProjectRelease>('PROJECT_RELEASE', build, info, release, user);
       if (release.method === 'release') {

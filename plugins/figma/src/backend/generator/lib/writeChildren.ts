@@ -36,7 +36,7 @@ export function writeChildren(
     const isPress = Boolean(pressId);
     const isVariant = !!(child.node as SceneNode & VariantMixin).variantProperties;
     const master = isVariant ? child.node.parent : child.node;
-    const attrs = parser.getNodeAttrs(child.node);
+    const attrs = parser.getNodeAttrs(child.node, string.createIdentifierPascal(master.name));
     const conds = getConditional(attrs, (master as SceneNode)?.componentPropertyReferences);
     const isCond = conds.length > 0;
     if (isPress)

@@ -1,18 +1,37 @@
 // @ts-nocheck
 
 import {createRoot} from 'react-dom/client';
-import {useEffect, useState} from 'react';
-import {useControls, TransformWrapper, TransformComponent} from 'react-zoom-pan-pinch';
+import {useLayoutEffect, useState} from 'react';
+import {useControls, getMatrixTransformStyles, TransformWrapper, TransformComponent} from 'react-zoom-pan-pinch';
 import {Inspector} from 'preview-inspector';
 
 export default function Loader() {
   return (
     <TransformWrapper
       smooth
+      minScale={0.5}
+      initialPositionY={-99999}
       initialPositionX={window.innerWidth / 2}
-      initialPositionY={window.innerHeight * 2}
-      onTransformed={() => parent.postMessage({type: 'loader::interaction'})}
-      doubleClick={{mode: 'reset'}}>
+      customTransform={getMatrixTransformStyles}
+      centerZoomedOut={false}
+      doubleClick={{mode: 'reset'}}
+      wheel={{smoothStep: 0.03}}
+      onTransformed={(e) => {
+        const defSize = 16;
+        const minSize = 11.4;
+        const maxSize = 22.6;
+        // Scale < 1: interpolate between minSize and defSize
+        // Scale > 1: interpolate between defSize and maxSize
+        const size = e.state.scale <= 1 
+          ? minSize + (defSize - minSize) * e.state.scale
+          : defSize + (maxSize - defSize) * Math.min(e.state.scale - 1, 1);
+        const halfSize = size / 2;
+        const backgroundSize = `${size}px ${size}px`;
+        const backgroundPosition = `0 0, 0 ${halfSize}px, ${halfSize}px ${-halfSize}px, ${-halfSize}px 0px`;
+        document.documentElement.style.backgroundSize = backgroundSize;
+        document.documentElement.style.backgroundPosition = backgroundPosition;
+        parent.postMessage({type: 'loader::interaction'});
+      }}>
       <Preview/>
     </TransformWrapper>
   );
@@ -25,13 +44,8 @@ export function Preview() {
   const [hasInspect, setInspect] = useState(false);
   const [isMouseInComponent, setMouseInComponent] = useState(false);
 
-  const inspectHandler = (type: 'hover' | 'inspect' | 'load') => (data: any) => {
-    if (type === 'load') {
-      console.log('[load]', data);
-      return;
-    }
-
-    const {name, fiber, element, codeInfo, pointer} = data;
+  const augmentNode = (node: any) => {
+    const {name, fiber, element, codeInfo, pointer} = node;
     const root = codeInfo?.absolutePath !== 'index.tsx';
     const path = root ? codeInfo?.absolutePath : null;
     const rect = element?.getBoundingClientRect();
@@ -40,28 +54,39 @@ export function Preview() {
       line: root && parseInt(codeInfo.lineNumber, 10) || 1,
       column: root && parseInt(codeInfo.columnNumber, 10) || 1,
     };
-    console.log(`[${type}]`, data);
-    parent.postMessage({type: `loader::${type}`,
+    return {
       name,
+      root,
       path,
       rect,
       nodeId,
       source,
+    };
+  }
+
+  const augmentData = (data: any, isMap: boolean) => isMap
+    ? Object.fromEntries(Object.entries(data)
+      .map(([k, v]) => [k, augmentNode(v)]))
+    : augmentNode(data);
+
+  const inspectHandler = (type: 'hover' | 'inspect' | 'load') => (data: any) => {
+    console.log(`[${type}]`, data);
+    parent.postMessage({
+      type: `loader::${type}`,
+      info: augmentData(data, type === 'load'),
     });
   };
 
-  const updateTheme = (theme: string) => {
-    document.body.style.backgroundColor = theme === 'light'
-      ? '#ffffff'
-      : '#2c2c2c';
+  const updateBackground = (background: string) => {
+    document.body.style.backgroundColor = background;
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const figma = (e: JSON) => {
       const el = document.getElementById('component');
       switch (e.data?.type) {
-        case 'preview::theme':
-          updateTheme(e.data.theme);
+        case 'preview::background':
+          updateBackground(e.data.background);
           return;
         case 'preview::inspect':
           setInspect(e.data.enabled);
@@ -71,7 +96,7 @@ export function Preview() {
           break;
         case 'preview::load':
           setError(null);
-          updateTheme(e.data.theme);
+          updateBackground(e.data.background);
           // Update frame
           el.style.display = 'flex';
           el.style.width = e.data.width ? e.data.width + 'px' : 'auto';

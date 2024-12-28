@@ -5,7 +5,10 @@ import type * as T from 'types/parse';
 
 const NODES_WITH_STYLES = ['TEXT', 'FRAME', 'GROUP', 'COMPONENT', 'RECTANGLE', 'ELLIPSE'];
 
-export default async function(component: ComponentNode): Promise<T.ParseData> {
+export default async function parse(
+  component: ComponentNode,
+  skipCache: boolean = false,
+): Promise<T.ParseData> {
   // Make sure component can be processed
   try {
     validate(component);
@@ -15,29 +18,26 @@ export default async function(component: ComponentNode): Promise<T.ParseData> {
   }
 
   // Profile
-  // const _t1 = Date.now();
+  const _t1 = Date.now();
 
   // Gather node data relative to conversion
   const data = crawl(component);
 
-  // Debug
-  // console.log(component.parent.type === 'COMPONENT_SET' ? component.parent.name : component.name, data);
-
   // Generated styles and assets
   const [localState, stylesheet, {assetData, assetMap}] = await Promise.all([
     parser.getLocalState(),
-    parser.getStyleSheet(data.meta.styleNodes, data.variants),
+    parser.getStyleSheet(data.meta.styleNodes, data.variants, skipCache),
     parser.getAssets(data.meta.assetNodes),
   ]);
 
-  // Profile
-  // console.log(`[fig/parse/main] ${Date.now() - _t1}ms`, data, stylesheet);
+  // Profile (eta: 20ms per node [30-50ms w/ per node variants]) due to `getCSSAsync`)
+  console.log(`>> [parse] ${Date.now() - _t1}ms (${data.meta.styleNodes.size} styles, ${data.meta.assetNodes.size} assets)`, component.parent.type === 'COMPONENT_SET' ? component.parent.name : component.name);
 
   return {...data, localState, stylesheet, assetData, assetMap};
 }
 
 export function crawl(node: ComponentNode) {
-  // const _t1 = Date.now();
+  const _t1 = Date.now();
   const {dict, tree, meta} = crawlChildren(node.children);
 
   const root = getRoot(node);
@@ -48,8 +48,9 @@ export function crawl(node: ComponentNode) {
   root && meta.styleNodes.add(root.node.id);
   frame && meta.styleNodes.add(frame.node.id);
 
-  // Profile
-  // console.log(`[fig/parse/crawl] ${Date.now() - _t1}ms (${dict.size} nodes)`, tree);
+  // Profile (eta: 0ms -> 70ms)
+  // TODO: investigate descrepency
+  console.log(`>> [crawl] ${Date.now() - _t1}ms (${dict.size} nodes)`, node.parent.type === 'COMPONENT_SET' ? node.parent.name : node.name);
 
   return {
     tree,

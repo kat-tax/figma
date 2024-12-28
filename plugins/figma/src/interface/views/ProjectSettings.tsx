@@ -1,4 +1,4 @@
-import MonacoReact from 'monacopilot';
+import MonacoReact from '@monaco-editor/react';
 import {AutoForm} from 'uniforms-unstyled';
 import {LoadingIndicator} from 'figma-ui';
 import {useMemo, useState, Fragment} from 'react';
@@ -7,7 +7,7 @@ import {debounce} from 'common/delay';
 
 import schema from 'interface/schemas/project';
 
-import type {Theme} from 'monacopilot';
+import type {Theme} from '@monaco-editor/react';
 import type {Monaco} from 'interface/utils/editor';
 import type {SettingsData} from 'interface/hooks/useUserSettings';
 import type {UserSettings} from 'types/settings';

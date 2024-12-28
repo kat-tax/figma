@@ -17,14 +17,15 @@ interface PreviewOptions {
   name: string,
   path: string,
   imports: string,
-  theme: string,
   language: string,
   settings: UserSettings,
+  background: string,
+  theme: string,
   build: ComponentBuild,
 }
 
 export async function preview(options: PreviewOptions) {
-  const {tag, name, path, imports, theme, language, settings, build} = options;
+  const {tag, name, path, imports, theme, background, language, settings, build} = options;
 
   // Virtual filesystem
   const files: Map<string, string | Uint8Array> = new Map();
@@ -62,9 +63,10 @@ export async function preview(options: PreviewOptions) {
   try {
     files.set('/theme', $.projectTheme.get().toString());
     files.set(ENTRY_POINT, previewApp
-      .replace('__CURRENT_THEME__', theme)
-      .replace('__CURRENT_LANGUAGE__', language)
       .replace('__COMPONENT_IMPORTS__', `import {${name}} from '${path}';\n${imports}`)
+      .replace('__CURRENT_BACKGROUND__', background)
+      .replace('__CURRENT_LANGUAGE__', language)
+      .replace('__CURRENT_THEME__', theme)
       .replace('__COMPONENT_TAG__', tag));
     return await bundle(ENTRY_POINT, files, settings.esbuild, importMap);
   } catch (e) {
@@ -73,7 +75,7 @@ export async function preview(options: PreviewOptions) {
   }
 }
 
-export async function init(settings: UserSettings) {
+export async function init(settings: UserSettings, isDark: boolean) {
   // Build filesystem
   const files = new Map<string, string>();
   files.set(ENTRY_POINT, atob(loader.toString()));
@@ -82,6 +84,7 @@ export async function init(settings: UserSettings) {
   try {
     const output = await bundle(ENTRY_POINT, files, settings.esbuild, importMap);
     return atob(iframe)
+      .replace('__CURRENT_FIGMA_THEME__', isDark ? 'dark' : 'light')
       .replace('__IMPORT_MAP__', JSON.stringify(importMap, undefined, 2))
       .replace('__LOADER__', output);
   } catch(e) {

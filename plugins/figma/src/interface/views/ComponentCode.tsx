@@ -1,15 +1,17 @@
+import {emit} from '@create-figma-plugin/utilities';
 import {useRef, useState, useEffect, useCallback, Fragment} from 'react';
-import MonacoReact, {DiffEditor} from 'monacopilot';
+import MonacoReact, {DiffEditor} from '@monaco-editor/react';
 import {Position} from 'monaco-editor';
 import {LoadingIndicator} from 'figma-ui';
 import {ScreenWarning} from 'interface/base/ScreenWarning';
-import {MonacoBinding} from 'interface/utils/editor/lib/MonacoBinding';
+import {MonacoBinding} from 'interface/utils/editor/lib/multiplayer';
 import {initComponentEditor} from 'interface/utils/editor';
 import {F2RN_EDITOR_NS} from 'config/consts';
 import * as $ from 'store';
 
-import type {Theme} from 'monacopilot';
+import type {Theme} from '@monaco-editor/react';
 import type {UserSettings} from 'types/settings';
+import type {EventPropsSave} from 'types/events';
 import type {ComponentBuild} from 'types/component';
 import type {Monaco, Editor} from 'interface/utils/editor';
 import type {Navigation} from 'interface/hooks/useNavigation';
@@ -104,7 +106,10 @@ export function ComponentCode(props: ComponentCodeProps) {
         path={componentPath}
         onMount={(e, m) => {
           editor.current = e;
-          initComponentEditor(e, m, prompt);
+          initComponentEditor(e, m, prompt, (components) => {
+            if (!components) return;
+            emit<EventPropsSave>('PROPS_SAVE', Object.fromEntries(components));
+          });
           e.onDidChangeCursorPosition((event) => {
             // console.log('[changed cursor]', event);
             if (props.nav.codeFocus) return;
@@ -118,7 +123,7 @@ export function ComponentCode(props: ComponentCodeProps) {
             }
           });
           e.onDidChangeModelContent((event) => {
-            console.log('[changed model content]', event);
+            // console.log('[changed model content]', event);
             props.nav.setLastEditorRev(event.versionId);
           });
           e.onDidChangeModel((_event) => {

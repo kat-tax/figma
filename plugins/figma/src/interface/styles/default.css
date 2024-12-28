@@ -55,6 +55,15 @@ iframe {
   height: 100%;
 }
 
+.props-select {
+  max-height: 300px;
+}
+
+.fp-TabsContent {
+  overflow: auto;
+  height: 100%;
+}
+
 /* Radix Tab Figma Styling */
 
 .tabs {
@@ -71,6 +80,14 @@ iframe {
   justify-content: space-between;
   background-color: var(--figma-color-bg);
   border-bottom: 1px solid var(--figma-color-border);
+}
+
+.search-mode.tab-menu,
+.search-mode div[role="tablist"],
+.search-mode div[role="tablist"] > div {
+  align-items: center;
+  width: 100%;
+  gap: 0;
 }
 
 .tab-bar {
@@ -118,7 +135,7 @@ iframe {
   padding: 0 8px;
   height: 32;
   border: 0;
-  border-radius: 2px;
+  border-radius: 5px;
 }
 
 .tab.icon {
@@ -141,12 +158,13 @@ iframe {
 }
 
 .tab-btn {
-  width: 32;
-  height: 32;
+  width: 24px;
+  height: 24px;
+  margin-block: 4px;
+  margin-right: 4px;
   padding: 0;
   border: 0;
-  opacity: 0.6;
-  border-radius: 2px;
+  border-radius: 5px;
   display: flex;
   background: none;
   justify-content: center;
@@ -319,6 +337,8 @@ iframe {
 .virtuoso-grid-list {
   display: flex;
   flex-flow: wrap;
+  margin: 6px;
+  gap: 1px;
 }
 
 /* Theme Picker */

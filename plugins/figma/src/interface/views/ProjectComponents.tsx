@@ -46,7 +46,7 @@ export function ProjectComponents(props: ProjectComponentsProps) {
       .sort((a, b) => a[1].path?.localeCompare(b[1].path))
       .map(([key, item]) => ({...item, key}));
     return new Fzf(entries, {
-      selector: (item) => `${item.path}/${item.name}`,
+      selector: (item) => `${item.page}/${item.name}`,
       tiebreakers: [byLengthAsc],
       forward: false,
     });

@@ -276,6 +276,10 @@ export const Inspector = function<Element>(props: InspectorProps<Element>) {
   });
 
   useEffect(() => {
+    inspectAgents.forEach(agent => handleLoadElements({
+      agent,
+      elements: agent.load(),
+    }));
     return () => {
       agentRef.current = undefined;
       inspectAgents.forEach(agent => {
@@ -285,9 +289,36 @@ export const Inspector = function<Element>(props: InspectorProps<Element>) {
   }, [inspectAgents]);
 
   useEffect(() => {
-    inspectAgents.forEach(agent =>
-      handleLoadElements({agent, elements: agent.load()}));
-  }, [inspectAgents]);
+    if (disable) return;
+
+    const root = document.getElementById('component');
+    if (!root) return;
+
+    const update = () => {
+      inspectAgents.forEach(agent => handleLoadElements({
+        agent,
+        elements: agent.load(),
+      }));
+    }
+  
+    // Update elements when window size changes
+    const resizer = new ResizeObserver(update);
+    resizer.observe(document.body);
+
+    // Update elements when component children change
+    const observer = new MutationObserver(update);
+    observer.observe(root, {childList: true, subtree: true});
+
+    // Update elements when position changes
+    const intersector = new IntersectionObserver(update, {threshold: 0, root: null});
+    intersector.observe(root);
+
+    return () => {
+      resizer.disconnect();
+      observer.disconnect();
+      intersector.disconnect();
+    };
+  }, [inspectAgents, disable]);
 
   return (<>{children ?? null}</>);
 }

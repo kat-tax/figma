@@ -203,17 +203,15 @@ export const getElementInspect = (element: HTMLElement): {
   title: string,
 } => {
   const fiber = getElementFiberUpward(element);
-  const referenceFiber = getReferenceFiber(fiber);
-  const namedFiber = getNamedFiber(referenceFiber);
+  const refFiber = getReferenceFiber(fiber);
+  const namedFiber = getNamedFiber(refFiber);
   const nodeName = element.nodeName.toLowerCase();
   let fiberName = getFiberName(namedFiber);
-
   if (fiberName === nodeName) {
     fiberName = getFiberName(namedFiber?.return);
   }
-
   return {
-    fiber: referenceFiber,
+    fiber: refFiber,
     name: nodeName,
     title: fiberName || nodeName,
   };

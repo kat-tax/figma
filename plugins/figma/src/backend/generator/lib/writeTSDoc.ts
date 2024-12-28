@@ -58,7 +58,6 @@ export function writeTSDoc(
   };
 }
 
-
 function parsePropsListEntry(line: string) {
   if (line.trim() === '') return {prop: '', description: []};
   const [prop, ...words] = line.trim().split(' ');

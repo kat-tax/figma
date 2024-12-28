@@ -13,30 +13,62 @@ import {generateIndex} from './lib/generateIndex';
 import {generateTheme} from './lib/generateTheme';
 import {generateBundle} from './lib/generateBundle';
 
-import type {ComponentInfo, ComponentData, ComponentAsset, ComponentLinks, ComponentRoster} from 'types/component';
-import type {EventComponentBuild, EventProjectTheme, EventProjectLanguage, EventProjectIcons, EventNodeAttrSave} from 'types/events';
+import type {ComponentInfo, ComponentAsset, ComponentLinks, ComponentRoster} from 'types/component';
+import type {EventComponentBuild, EventProjectTheme, EventProjectLanguage, EventProjectIcons, EventNodeAttrSave, EventPropsSave, EventProjectBackground} from 'types/events';
 import type {ProjectSettings} from 'types/settings';
 
-const _cache: Record<string, ComponentData> = {};
 let _lastThemeCode = '';
 let _lastThemeName = '';
 
-export async function watchComponents(targetComponent: () => void) {
-  // Compile all components in background on init
+export async function watchComponents(
+  targetComponent: () => void,
+  updateBackground: () => void,
+) {
+  // Save component props when parsed
+  on<EventPropsSave>('PROPS_SAVE', (props) => {
+    // TODO: fix this
+    // figma.root.setSharedPluginData('f2rn', consts.F2RN_COMP_PROPS, JSON.stringify(props));
+  });
+
+  // Recompile component on node attribute change
+  on<EventNodeAttrSave>('NODE_ATTR_SAVE', (nodeId, nodeSrc, data) => {
+    const node = figma.getNodeById(nodeId);
+    const attr = parser.getNodeAttrs(node, nodeSrc);
+    const delta = Object.keys(diff(attr, data)).length;
+    if (delta > 0) {
+      // TODO: improve undo UX (recompile component / refresh node toolbar)
+      // figma.commitUndo();
+      node.setSharedPluginData('f2rn', consts.F2RN_NODE_ATTRS, JSON.stringify(data));
+      const component = parser.getComponentTarget(node);
+      if (component) {
+        compile(all, true, new Set([component]));
+      }
+    }
+  });
+
+  // Init: update background preview color
+  updateBackground();
+
+  // Init: compile all components in background
   const all = parser.getComponentTargets(figma.root.findAllWithCriteria({types: ['COMPONENT']}));
   if (all.size > 0) {
-    const cached = await compile(all);
-    if (cached) {
-      // Select targeted component since it's available now
-      targetComponent();
-      // Refresh component cache
-      await compile(all, true);
-    }
+    await compile(all);
+    // Select targeted component since it's available now
+    targetComponent();
+    // Refresh component cache
+    await compile(all, true);
   }
 
   // Recompile changed components on doc change
   figma.on('documentchange', async (e) => {
-    // console.log('[change]', e.documentChanges);
+    // Page background update
+    if (e.documentChanges.length === 1
+      && e.documentChanges[0].type === 'PROPERTY_CHANGE'
+      && e.documentChanges[0].properties.includes('backgrounds')) {
+      updateBackground();
+      return;
+    }
+
     // We need to get all components for the roster
     const all = parser.getComponentTargets(figma.root.findAllWithCriteria({types: ['COMPONENT']}));
     // No components, do nothing
@@ -67,23 +99,7 @@ export async function watchComponents(targetComponent: () => void) {
     // Get updated targets and compile
     const update = parser.getComponentTargets(updates);
     await compile(all, true, update);
-    // console.log('[update]', Array.from(update));
-  });
-
-  // Recompile component on node attribute change
-  on<EventNodeAttrSave>('NODE_ATTR_SAVE', (nodeId, data) => {
-    const node = figma.getNodeById(nodeId);
-    const attr = parser.getNodeAttrs(node);
-    const delta = Object.keys(diff(attr, data)).length;
-    if (delta > 0) {
-      // TODO: improve undo UX (recompile component / refresh node toolbar)
-      // figma.commitUndo();
-      node.setSharedPluginData('f2rn', consts.F2RN_NODE_ATTRS, JSON.stringify(data));
-      const component = parser.getComponentTarget(node);
-      if (component) {
-        compile(all, true, new Set([component]));
-      }
-    }
+    console.log('>> [update]', Array.from(update));
   });
 }
 
@@ -163,7 +179,6 @@ export async function compile(
   let _links: ComponentLinks = {};
   let _total = 0;
   let _loaded = 0;
-  let _cached = false;
 
   // Iterate over all components, fill roster, info, and total
   for await (const component of components) {
@@ -187,18 +202,20 @@ export async function compile(
     // Prevent UI from freezing
     delay.wait(1);
     try {
+      const _t1 = Date.now();
+
+      if (!component) continue;
+
       // Compile component
-      const res = await bundle(component, config.state, skipCache);
+      const bundle = await generateBundle(component, {...config.state}, skipCache);
 
       // Derive data
-      const {id, key, info, links, icons, assets} = res.bundle;
+      const {id, key, info, links, icons, assets} = bundle;
       const pages = figma.root.children?.map(p => p.name);
 
       // Aggregate data
       _loaded++;
-      _cached = res.cached;
       _links = {..._links, ...links};
-      _cache[component.id] = res.bundle;
       _roster[key] = {
         ..._roster[key],
         id,
@@ -210,9 +227,6 @@ export async function compile(
       // Aggregate assets and icons
       icons?.forEach(icon => {_icons.add(icon)});
       assets?.forEach(asset => {_assets[asset.hash] = asset});
-      
-      // Cache compilation to disk
-      component.setSharedPluginData('f2rn', 'data', JSON.stringify(res.bundle));
 
       // Send compilation to interface
       emit<EventComponentBuild>('COMPONENT_BUILD', {
@@ -225,51 +239,12 @@ export async function compile(
         assets: _assets,
         icons: Array.from(_icons),
         assetMap: {},
-      }, res.bundle);
+      }, bundle);
 
-      //console.log('[compile]', info.name, res.bundle);
+      // Profile
+      console.log(`>> [compile] ${Date.now() - _t1}ms`, info.name);
     } catch (e) {
       console.error('Failed to export', component, e);
     }
   }
-
-  return _cached;
-}
-
-export async function bundle(
-  node: ComponentNode,
-  settings: ProjectSettings,
-  skipCache?: boolean,
-) {
-  if (!node) return;
-
-  const instanceSettings = {...settings};
-
-  // Check cache
-  if (!skipCache) {
-    // Memory cache
-    if (_cache[node.key]) {
-      //console.log('[cache/memory]', node.name);
-      return {bundle: _cache[node.key], cached: true};
-    }
-    // Disk cache
-    const data = node.getSharedPluginData('f2rn', 'data');
-    if (data) {
-      try {
-        const bundle = JSON.parse(data) as ComponentData;
-        //console.log('[cache/disk]', node.name);
-        _cache[node.key] = bundle;
-        return {bundle, cached: true};
-      } catch (e) {
-        console.error('Failed to parse cached bundle', node, e);
-      }
-    }
-  }
-
-  //console.log('[cache/hit]', node.name);
-
-  const bundle: ComponentData = await generateBundle(node, instanceSettings);
-  _cache[node.key] = bundle;
-
-  return {bundle, cached: false};
 }

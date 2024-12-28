@@ -120,7 +120,7 @@ importers:
     devDependencies:
       '@figma/plugin-typings':
         specifier: latest
-        version: 1.92.0
+        version: 1.104.0
       '@types/node':
         specifier: 20.10.7
         version: 20.10.7
@@ -303,6 +303,9 @@ importers:
       '@logtail/browser':
         specifier: ^0.4.21
         version: 0.4.21
+      '@monaco-editor/react':
+        specifier: ^4.6.0
+        version: 4.6.0(monaco-editor@0.52.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-menubar':
         specifier: ^1.0.4
         version: 1.0.4(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -355,14 +358,14 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1
       monaco-editor:
-        specifier: ^0.46.0
-        version: 0.46.0
+        specifier: 0.52.0
+        version: 0.52.0
       monaco-editor-auto-typings:
-        specifier: ^0.4.5
-        version: 0.4.5(monaco-editor@0.46.0)
+        specifier: ^0.4.6
+        version: 0.4.6(monaco-editor@0.52.0)
       monacopilot:
-        specifier: ^0.8.22
-        version: 0.8.22(monaco-editor@0.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        specifier: ^0.15.6
+        version: 0.15.6
       re-resizable:
         specifier: ^6.9.17
         version: 6.9.17(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -408,7 +411,7 @@ importers:
         version: 0.2.2(esbuild@0.20.2)
       '@figma/plugin-typings':
         specifier: latest
-        version: 1.92.0
+        version: 1.104.0
       '@types/lodash.camelcase':
         specifier: ^4.3.9
         version: 4.3.9
@@ -431,8 +434,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/figma-build
       react-zoom-pan-pinch:
-        specifier: ^3.4.4
-        version: 3.4.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        specifier: ^3.6.1
+        version: 3.6.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       typescript:
         specifier: ^5.3.3
         version: 5.3.3
@@ -810,8 +813,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@figma/plugin-typings@1.92.0':
-    resolution: {integrity: sha512-W02/uSt+n33Iro0/Goj+Dl1Fp+1i9+jjciw//BcBh0VOz2QzuiaurhftnboO8gKucOloBOROMbxe/Vylu4ItZw==}
+  '@figma/plugin-typings@1.104.0':
+    resolution: {integrity: sha512-FKnn/KASBYhXibTJvH8K9doUs1PCNwp8HZxPa+jbM/k5wNWHY4Z3jRsUCFPtl0YepZQqV8o1sBE7TM+cLZ3UkQ==}
 
   '@floating-ui/core@1.6.0':
     resolution: {integrity: sha512-PcF++MykgmTj3CIyOQbKA/hDzOAiqI3mhuoN44WRCopIs1sgoDoU4oty4Jtqaj/y3oDU6fnVSm4QG0a3t5i0+g==}
@@ -2162,6 +2165,7 @@ packages:
 
   acorn-import-assertions@1.9.0:
     resolution: {integrity: sha512-cmMwop9x+8KFhxvKrKfPYmN6/pKTYYHBqLa0DfvVZcKMJWNyWLnaqND7dx/qn66R7ewM1UX5XMaDVP5wlVTaVA==}
+    deprecated: package has been renamed to acorn-import-attributes
     peerDependencies:
       acorn: ^8
 
@@ -2810,6 +2814,7 @@ packages:
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
+    deprecated: Glob versions prior to v9 are no longer supported
 
   global-modules@2.0.0:
     resolution: {integrity: sha512-NGbfmJBp9x8IxyJSd1P+otYK8vonoJactOogrVfFRIAEY1ukil8RSKDz2Yo7wh1oihl51l/r6W4epkeKJHqL8A==}
@@ -2959,6 +2964,7 @@ packages:
 
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
+    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
@@ -3384,19 +3390,16 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  monaco-editor-auto-typings@0.4.5:
-    resolution: {integrity: sha512-J1iVXKKhcBRc8t3jhHl2l9WYhnnPBXFOSuRCIpiC7d2aEOX9ZhWuIAWcCtTtvAN4944lfi0lhjuTi4iebe8VDg==}
+  monaco-editor-auto-typings@0.4.6:
+    resolution: {integrity: sha512-yN6yP2oQJkpyZtUyi5qT9AjZLILrTZWOFny7Km2yNiPMPqOWq/znkTS4b5Yk1sHumSaLJUw5m1EPKiopRqtEpA==}
     peerDependencies:
       monaco-editor: '*'
 
-  monaco-editor@0.46.0:
-    resolution: {integrity: sha512-ADwtLIIww+9FKybWscd7OCfm9odsFYHImBRI1v9AviGce55QY8raT+9ihH8jX/E/e6QVSGM+pKj4jSUSRmALNQ==}
+  monaco-editor@0.52.0:
+    resolution: {integrity: sha512-OeWhNpABLCeTqubfqLMXGsqf6OmPU6pHM85kF3dhy6kq5hnhuVS1p3VrEW/XhWHc71P2tHyS5JFySD8mgs1crw==}
 
-  monacopilot@0.8.22:
-    resolution: {integrity: sha512-/zkm2DbMIuwPKKExmG2/RUp4JKZ6KMjCgqyGP4huWkKykH5ykJuU6TFBQeqZEDEPZXizaZ4YCeuAf/HdYHdVXg==}
-    peerDependencies:
-      react: ^18.2.0
-      react-dom: ^18.2.0
+  monacopilot@0.15.6:
+    resolution: {integrity: sha512-di32vqQseXIH1wSJmvw8EwvDX/PYyFg5KgdQhmdNG8X+umF0X9umJ9LgkPStee9E0VqNnpzBaigv0CI4Z2bJxg==}
 
   mri@1.2.0:
     resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
@@ -3981,8 +3984,8 @@ packages:
       react: '>=16 || >=17 || >= 18'
       react-dom: '>=16 || >=17 || >= 18'
 
-  react-zoom-pan-pinch@3.4.4:
-    resolution: {integrity: sha512-lGTu7D9lQpYEQ6sH+NSlLA7gicgKRW8j+D/4HO1AbSV2POvKRFzdWQ8eI0r3xmOsl4dYQcY+teV6MhULeg1xBw==}
+  react-zoom-pan-pinch@3.6.1:
+    resolution: {integrity: sha512-SdPqdk7QDSV7u/WulkFOi+cnza8rEZ0XX4ZpeH7vx3UZEg7DoyuAy3MCmm+BWv/idPQL2Oe73VoC0EhfCN+sZQ==}
     engines: {node: '>=8', npm: '>=5'}
     peerDependencies:
       react: '*'
@@ -4973,7 +4976,7 @@ snapshots:
   '@esbuild/win32-x64@0.20.2':
     optional: true
 
-  '@figma/plugin-typings@1.92.0': {}
+  '@figma/plugin-typings@1.104.0': {}
 
   '@floating-ui/core@1.6.0':
     dependencies:
@@ -5106,15 +5109,15 @@ snapshots:
     dependencies:
       exenv-es6: 1.1.1
 
-  '@monaco-editor/loader@1.4.0(monaco-editor@0.46.0)':
+  '@monaco-editor/loader@1.4.0(monaco-editor@0.52.0)':
     dependencies:
-      monaco-editor: 0.46.0
+      monaco-editor: 0.52.0
       state-local: 1.0.7
 
-  '@monaco-editor/react@4.6.0(monaco-editor@0.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@monaco-editor/react@4.6.0(monaco-editor@0.52.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@monaco-editor/loader': 1.4.0(monaco-editor@0.46.0)
-      monaco-editor: 0.46.0
+      '@monaco-editor/loader': 1.4.0(monaco-editor@0.52.0)
+      monaco-editor: 0.52.0
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
@@ -8044,19 +8047,13 @@ snapshots:
 
   mkdirp@3.0.1: {}
 
-  monaco-editor-auto-typings@0.4.5(monaco-editor@0.46.0):
+  monaco-editor-auto-typings@0.4.6(monaco-editor@0.52.0):
     dependencies:
-      monaco-editor: 0.46.0
+      monaco-editor: 0.52.0
 
-  monaco-editor@0.46.0: {}
+  monaco-editor@0.52.0: {}
 
-  monacopilot@0.8.22(monaco-editor@0.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
-    dependencies:
-      '@monaco-editor/react': 4.6.0(monaco-editor@0.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
-    transitivePeerDependencies:
-      - monaco-editor
+  monacopilot@0.15.6: {}
 
   mri@1.2.0: {}
 
@@ -8655,7 +8652,7 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  react-zoom-pan-pinch@3.4.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+  react-zoom-pan-pinch@3.6.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)

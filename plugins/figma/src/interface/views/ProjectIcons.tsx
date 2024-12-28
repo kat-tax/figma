@@ -2,14 +2,13 @@ import {Fzf, byLengthAsc} from 'fzf';
 import {Icon, listIcons, getIcon} from '@iconify/react';
 import {useState, useEffect, useMemo, Fragment} from 'react';
 import {useCopyToClipboard} from '@uidotdev/usehooks';
-import {Button, IconButton} from 'figma-ui';
+import {Button, IconButton} from 'figma-kit';
 import {VirtuosoGrid} from 'react-virtuoso';
 import {loadIconSet} from 'interface/services/iconify';
 import {ProgressBar} from 'interface/base/ProgressBar';
 import {ScreenInfo} from 'interface/base/ScreenInfo';
 import {emit} from '@create-figma-plugin/utilities';
 
-import type {ReactNode} from 'react';
 import type {Navigation} from 'interface/hooks/useNavigation';
 import type {EventNotify, EventFocusNode, EventProjectImportIcons} from 'types/events';
 import type {ProjectIcons as ProjectIconsType} from 'types/project';
@@ -41,8 +40,8 @@ export function ProjectIcons(props: ProjectIconsProps) {
   const [list, setList] = useState<ProjectIconsEntry[]>([]);
   const [iconSet, setIconSet] = useState(props.icons?.sets?.[0]);
   const [importing, setImporting] = useState(false);
+  const [loadedIcons, setLoadedIcons] = useState<string[]>([]);
   const [loadProgress, setLoadProgress] = useState(0);
-  const [_loadedIcons, setLoadedIcons] = useState<string[]>([]);
   const [_copiedText, copyToClipboard] = useCopyToClipboard();
 
   // Rebuild list when icons or build or loadedIcons change
@@ -60,7 +59,7 @@ export function ProjectIcons(props: ProjectIconsProps) {
       if (!a.missing && b.missing) return -1;
       return 0;
     })
-  , [props.icons, props.build]);
+  , [props.icons, props.build, loadedIcons]);
 
   // Rebuild index when icons change
   const index = useMemo(() => new Fzf(icons, {
@@ -102,7 +101,7 @@ export function ProjectIcons(props: ProjectIconsProps) {
     }
   }, [props.icons]);
 
-  // Update list when search query changes
+  // Update list when search query changes or index changes
   useEffect(() => {
     const entries = index.find(props.searchQuery);
     setList(Object.values(entries));
@@ -137,14 +136,12 @@ export function ProjectIcons(props: ProjectIconsProps) {
   return (
     <Fragment>
       <VirtuosoGrid
-        style={{height: '100%'}}       
+        style={{height: '100%'}}
         overscan={200}
         totalCount={list.length}
-        itemContent={i => (
-          <Fragment>
-            <IconListItem {...list[i].item} copy={copyToClipboard}/>
-          </Fragment> as ReactNode
-        )}
+        itemContent={i =>
+          <IconListItem {...list[i].item} copy={copyToClipboard}/>
+        }
       />
     </Fragment>
   );
@@ -162,7 +159,8 @@ function IconListItem(props: IconListItemProps) {
   const tag = `<Icon name="${props.icon}"/>`;
   return (
     <IconButton
-      title={props.icon}
+      size="medium"
+      aria-label={props.icon}
       disabled={props.missing}
       draggable={!props.missing}
       onDoubleClick={() => emit<EventFocusNode>('NODE_FOCUS', props.nodeId)}
@@ -185,8 +183,8 @@ function IconListItem(props: IconListItemProps) {
       }}>
       <Icon
         icon={props.icon}
-        width={16}
-        height={16}
+        width={18}
+        height={18}
         color={'var(--color-text)'}
       />
     </IconButton>

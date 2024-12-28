@@ -14,8 +14,9 @@ declare module 'react-native-unistyles' {
 }
 
 const logtail = new Logtail('3hRzjtVJTBk6BDFt3pSjjKam');
-const initialTheme = '__CURRENT_THEME__';
+const initialBackground = '__CURRENT_BACKGROUND__';
 const initialLanguage = '__CURRENT_LANGUAGE__';
+const initialTheme = '__CURRENT_THEME__';
 
 // TODO: replace with real translations
 window.__messages__ = {
@@ -46,12 +47,15 @@ export function App() {
           // console.log('[changed theme]', e.data.theme);
           UnistylesRuntime.setTheme(e.data.theme);
           return;
+        case 'preview::figma-theme':
+          document.documentElement.className = e.data.isDark ? 'dark' : 'light';
+          return;
         case 'preview::language':
           // console.log('[changed language]', e.data.language);
           __lang__ = e.data.language;
           return;
         case 'preview::variant': {
-          // console.log('[changed variant]', e.data.variant);
+          console.log('[changed variant]', e.data.variant);
           const newRoot = e.data.variant.props;
           setVariant(newRoot);
           parent.postMessage({type: 'app:refresh'});
@@ -74,6 +78,8 @@ export function App() {
     </ErrorBoundary>
   )
 }
+
+document.body.style.backgroundColor = initialBackground;
 
 UnistylesRegistry
   .addThemes(themes)

@@ -13,7 +13,7 @@ export let provider: SyncProvider;
 
 export function connect(user: User) {
   settings = sync.getSettings();
-  console.log('[sync]', settings);
+  console.log('>> [sync]', settings);
   provider = sync.createProvider(doc, settings);
   provider.awareness.setLocalState({user});
   return () => provider.disconnect();

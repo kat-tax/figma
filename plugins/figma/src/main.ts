@@ -1,7 +1,6 @@
 import {showUI, emit, on, once} from '@create-figma-plugin/utilities';
-import {focusNode, getNodeAttrs} from 'backend/parser/lib';
-import {F2RN_UI_WIDTH_MIN, F2RN_NODE_ATTRS} from 'config/consts';
-
+import {focusNode, getNodeAttrs, getTopFill, getColor} from 'backend/parser/lib';
+import {F2RN_UI_WIDTH_MIN} from 'config/consts';
 
 import * as project from 'backend/generator/project';
 import * as service from 'backend/generator/service';
@@ -48,7 +47,7 @@ export default async function() {
 
     // Handle update page (which tab the user is on)
     on<T.EventAppNavigate>('APP_NAVIGATE', (page) => {
-      console.log('navigate', page);
+      console.log('>> [navigate]', page);
     });
 
     // Handle update config from interface
@@ -86,9 +85,9 @@ export default async function() {
     });
 
     // Handle loading node attributes
-    on<T.EventNodeAttrReq>('NODE_ATTR_REQ', (nodeId) => {
+    on<T.EventNodeAttrReq>('NODE_ATTR_REQ', (nodeId, nodeSrc) => {
       const node = figma.getNodeById(nodeId);
-      const data = node && getNodeAttrs(node);
+      const data = node && getNodeAttrs(node, nodeSrc);
       if (data) {
         emit<T.EventNodeAttrRes>('NODE_ATTR_RES', nodeId, data);
       }
@@ -130,6 +129,8 @@ export default async function() {
     figma.on('selectionchange', () => {
       nav.targetSelectedComponent();
       nav.targetSelectedComponentVariant();
+      const node = figma.currentPage.selection?.[0];
+      if (node) emit<T.EventFocusedNode>('NODE_FOCUSED', node.id);
     });
 
     // If there is a selected component, target it on init
@@ -138,9 +139,17 @@ export default async function() {
     }, 1000);
 
     // Start generation services
-    service.watchComponents(nav.targetSelectedComponent);
     service.watchTheme(config.state);
     service.watchIcons();
     service.watchLocales();
+    service.watchComponents(
+      nav.targetSelectedComponent,
+      () => {
+        const page = figma.currentPage;
+        const fill = getTopFill(page.backgrounds);
+        const color = getColor(fill?.color, fill?.opacity);
+        emit<T.EventProjectBackground>('PROJECT_BACKGROUND', color);
+      }
+    );
   });
 }

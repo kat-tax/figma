@@ -2,6 +2,7 @@ import type {EventHandler} from '@create-figma-plugin/utilities';
 import type {AppPages} from 'types/app';
 import type {UserSettings} from 'types/settings';
 import type {NodeAttrData} from 'types/node';
+import type {TypeScriptComponent} from 'interface/utils/editor/lib/language';
 import type {ComponentData, ComponentBuild} from 'types/component';
 import type {ThemeScale, ThemeRadius, ThemePresets} from 'types/themes';
 import type {ProjectBuild, ProjectInfo, ProjectRelease} from 'types/project';
@@ -47,6 +48,15 @@ export interface EventConfigUpdate extends EventHandler {
   handler: (config: UserSettings) => void;
 }
 
+/** Props */
+
+export interface EventPropsSave extends EventHandler {
+  name: 'PROPS_SAVE';
+  handler: (props: {
+    [name: string]: TypeScriptComponent;
+  }) => void;
+}
+
 /* Node */
 
 export interface EventFocusNode extends EventHandler {
@@ -54,14 +64,19 @@ export interface EventFocusNode extends EventHandler {
   handler: (nodeId: string | null) => void;
 }
 
+export interface EventFocusedNode extends EventHandler {
+  name: 'NODE_FOCUSED';
+  handler: (nodeId: string | null) => void;
+}
+
 export interface EventNodeAttrSave extends EventHandler {
   name: 'NODE_ATTR_SAVE';
-  handler: (nodeId: string, data: NodeAttrData) => void;
+  handler: (nodeId: string, nodeSrc: string, data: NodeAttrData) => void;
 }
 
 export interface EventNodeAttrReq extends EventHandler {
   name: 'NODE_ATTR_REQ';
-  handler: (nodeId: string) => void;
+  handler: (nodeId: string, nodeSrc: string) => void;
 }
 
 export interface EventNodeAttrRes extends EventHandler {
@@ -101,6 +116,11 @@ export interface EventProjectRelease extends EventHandler {
 export interface EventProjectTheme extends EventHandler {
   name: 'PROJECT_THEME';
   handler: (theme: string, current: string, hasStyles: boolean) => void;
+}
+
+export interface EventProjectBackground extends EventHandler {
+  name: 'PROJECT_BACKGROUND';
+  handler: (color: string) => void;
 }
 
 export interface EventProjectLanguage extends EventHandler {

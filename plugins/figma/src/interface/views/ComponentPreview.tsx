@@ -1,5 +1,5 @@
-import {emit} from '@create-figma-plugin/utilities';
 import {Text} from 'figma-kit';
+import {emit, on} from '@create-figma-plugin/utilities';
 import {useWindowSize} from '@uidotdev/usehooks';
 import {useState, useCallback, useEffect, useRef, Fragment} from 'react';
 import {LoadingIndicator, IconButton, IconToggleButton, IconSwap16, IconTarget16} from 'figma-ui';
@@ -11,7 +11,7 @@ import * as $ from 'store';
 
 import type {CSSProperties} from 'react';
 import type {ComponentBuild} from 'types/component';
-import type {EventFocusNode} from 'types/events';
+import type {EventFocusNode, EventFocusedNode} from 'types/events';
 import type {SettingsData} from 'interface/hooks/useUserSettings';
 import type {VariantData} from 'interface/hooks/useSelectedVariant';
 import type {Navigation} from 'interface/hooks/useNavigation';
@@ -22,22 +22,43 @@ interface ComponentPreviewProps {
   build: ComponentBuild,
   settings: SettingsData,
   lastResize: number,
+  background: string,
   language: string,
+  isDark: boolean,
   theme: string,
   nav: Navigation,
 }
 
+interface PreviewNodeMap {
+  [nodeId: string]: PreviewNodeInfo
+}
+
+interface PreviewNodeInfo {
+  nodeId: string,
+  name: string,
+  path: string | null,
+  rect: DOMRect,
+  root: boolean,
+  source: {
+    line: number,
+    column: number,
+  }
+}
+
 export function ComponentPreview(props: ComponentPreviewProps) {
-  const {compKey, build, variant, theme, language, nav} = props;
+  const {compKey, nav, build, variant, theme, background, language, isDark} = props;
+  const [previewNodeMap, setPreviewNodeMap] = useState<PreviewNodeMap | null>(null);
   const [previewDefault, setPreviewDefault] = useState<[string, string] | null>(null);
   const [previewFocused, setPreviewFocused] = useState<[string, string] | null>(null);
   const [previewHover, setPreviewHover] = useState<[string, string] | null>(null);
+  const [previewRect, setPreviewRect] = useState<DOMRect | null>(null);
   const [previewNode, setPreviewNode] = useState<string | null>(null);
   const [previewDesc, setPreviewDesc] = useState<string | null>(null);
-  const [previewRect, setPreviewRect] = useState<DOMRect | null>(null);
+  const [figmaFocus, setFigmaFocus] = useState<string | null>(null);
   const [isInspect, setIsInspect] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [src, setSrc] = useState('');
+
   const screen = useWindowSize();
   const iframe = useRef<HTMLIFrameElement>(null);
   const loaded = useRef(false);
@@ -56,6 +77,37 @@ export function ComponentPreview(props: ComponentPreviewProps) {
     return [uri, nodeId || build.links?.[uri]];
   }
 
+  // Helper to focus an inspected node
+  const focus = (info: PreviewNodeInfo, focusInFigma?: boolean) => {
+    const {path, nodeId, source, name, rect} = info;
+    const [uri, node] = lookup(path, nodeId);
+
+    // Update the inspected node map
+    if (focusInFigma) {
+      setPreviewNodeMap(prev => ({...prev, [nodeId]: info}));
+    }
+
+    // Update the inspected node rect
+    if (rect) {
+      setPreviewRect(rect);
+      setPreviewNode(node);
+      setPreviewDesc(name);
+    }
+
+    // Focus node in Figma (and subsequently the plugin UI)
+    if (focusInFigma) {
+      emit<EventFocusNode>('NODE_FOCUS', node);
+    }
+
+    // Focus, but we're navigating to another file, wait for component to load
+    if (uri !== pathComponent) {
+      setTimeout(() => nav.setCodeFocus(source), 200);
+    // Focus editor immediately
+    } else {
+      nav.setCodeFocus(source);
+    }
+  }
+
   // Helper to send messages to the iframe
   const post = useCallback((type: string, data: any) => {
     const ctx = iframe.current?.contentWindow;
@@ -64,7 +116,7 @@ export function ComponentPreview(props: ComponentPreviewProps) {
 
   // Inits the loader that renders component apps
   const initLoader = useCallback(() => {
-    init(settings).then(code => {
+    init(settings, isDark).then(code => {
       loaded.current = true;
       setSrc(code);
       if (component) {
@@ -79,20 +131,20 @@ export function ComponentPreview(props: ComponentPreviewProps) {
     if (!loaded.current) return
     const {name, path, imports, width, height} = component;
     const tag = '<' + component.name + component.props + '/>';
-    preview({tag, name, path, imports, theme, language, settings, build}).then(bundle => {
-      post('preview::load', {bundle, name, width, height, theme});
+    preview({tag, name, path, imports, theme, background, language, settings, build}).then(bundle => {
+      post('preview::load', {bundle, name, width, height, theme, background});
     });
   }, [component, settings, build]);
 
-  // Workaround to force the preview app to refresh
+  // TEMP: Workaround to force the preview app to refresh on variant change
   const refresh = useCallback(() => {
     if (!iframe.current) return;
-    requestAnimationFrame(() => {
-      iframe.current.style.width = '99%';
-      requestAnimationFrame(() => {
-        iframe.current.style.width = '100%';
-      });
-    });
+    // requestAnimationFrame(() => {
+    //   iframe.current.style.width = '99%';
+    //   requestAnimationFrame(() => {
+    //     iframe.current.style.width = '100%';
+    //   });
+    // });
   }, []);
 
   // Enable inspect mode in the app
@@ -130,15 +182,32 @@ export function ComponentPreview(props: ComponentPreviewProps) {
   // Update the preview theme when it changes
   useEffect(() => {post('preview::theme', {theme})}, [theme]);
 
+  // Update the background theme when it changes
+  useEffect(() => {post('preview::figma-theme', {isDark})}, [isDark]);
+
+  // Update the preview background when it changes
+  useEffect(() => {post('preview::background', {background})}, [background]);
+
   // Update the preview language when it changes
   useEffect(() => {post('preview::language', {language})}, [language]);
 
   // Update the preview variant when it changes
   useEffect(() => {post('preview::variant', {variant})}, [variant]);
 
+  // Update the focused node when figma focus changes
+  useEffect(() => {
+    const node = previewNodeMap?.[figmaFocus];
+    if (node) focus(node);
+  }, [figmaFocus, previewNodeMap]);
+
+  // Handle node focus events from Figma
+  useEffect(() => on<EventFocusedNode>('NODE_FOCUSED', (nodeId) => {
+    setFigmaFocus(nodeId);
+  }), []);
+
   // Handle events from the loader and the app
   useEffect(() => {
-    const onFocus = (e: any) => {
+    const handleMessage = (e: any) => {
       switch (e.data?.type) {
         // Handle app loaded event
         case 'app:loaded': {
@@ -158,9 +227,15 @@ export function ComponentPreview(props: ComponentPreviewProps) {
           break;
         }
 
+        // Update inspect node map
+        case 'loader::load': {
+          setPreviewNodeMap(e.data.info ?? null);
+          break;
+        }
+
         // Update preview toolbar (temporarily)
         case 'loader::hover': {
-          const {path, nodeId, source} = e.data;
+          const {path, nodeId, source} = e.data.info;
           const [uri] = lookup(path, nodeId);
           setPreviewHover([
             uri ?? pathComponent,
@@ -172,32 +247,14 @@ export function ComponentPreview(props: ComponentPreviewProps) {
         // Focus node in Figma and in the code editor
         // Update the preview bar (persistently)
         case 'loader::inspect': {
-          const {path, nodeId, source, name, rect} = e.data;
-          const [uri, node] = lookup(path, nodeId);
-
-          // Update the inspected node rect
-          if (rect) {
-            setPreviewRect(rect);
-            setPreviewNode(node);
-            setPreviewDesc(name);
-          }
-
-          // Focus node in Figma (and subsequently the plugin UI)
-          emit<EventFocusNode>('NODE_FOCUS', node);
-
-          // Focus, but we're navigating to another file, wait for component to load
-          if (uri !== pathComponent) {
-            setTimeout(() => nav.setCodeFocus(source), 200);
-          // Focus editor immediately
-          } else {
-            nav.setCodeFocus(source);
-          }
+          const info: PreviewNodeInfo = e.data.info;
+          focus(info, true);
           break;
         }
       }
     };
-    addEventListener('message', onFocus);
-    return () => removeEventListener('message', onFocus);
+    addEventListener('message', handleMessage);
+    return () => removeEventListener('message', handleMessage);
   }, [component, build]);
 
   // Enable inspect mode when the user holds down the control/meta key
@@ -309,7 +366,11 @@ export function ComponentPreview(props: ComponentPreviewProps) {
             top: previewRect.top - 40,
             left: Math.min(previewRect.left, screen.width - 140),
           }}>
-            <NodeToolbar node={previewNode} close={() => inspect(false)}/>
+            <NodeToolbar
+              node={previewNode}
+              nodeSrc={previewDesc}
+              close={() => inspect(false)}
+            />
           </div>
         }
       </div>

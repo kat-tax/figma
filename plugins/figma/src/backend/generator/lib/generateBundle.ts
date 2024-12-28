@@ -1,5 +1,5 @@
 import CodeBlockWriter from 'code-block-writer';
-import parseFigmaComponent from 'backend/parser';
+import parseComponent from 'backend/parser';
 
 import * as consts from 'config/consts';
 import * as string from 'common/string';
@@ -36,6 +36,7 @@ const emptyBundle: ComponentData = {
 export async function generateBundle(
   node: ComponentNode,
   settings: ProjectSettings,
+  skipCache: boolean = false,
 ): Promise<ComponentData> {
   // No node, return empty bundle
   if (!node) return emptyBundle;
@@ -64,10 +65,13 @@ export async function generateBundle(
   }
 
   // Normal component, parse figma data
-  const data = await parseFigmaComponent(node);
+  const data = await parseComponent(node, skipCache);
 
   // No data, return empty bundle
   if (!data) return emptyBundle;
+
+  // Profile
+  const _t1 = Date.now();
   
   // Component links
   const links: ComponentLinks = {};
@@ -77,32 +81,33 @@ export async function generateBundle(
     links[string.componentPathNormalize(info.path)] = info.target.id;
   });
 
+  // Get frame size
+  const {width, height} = parser.getComponentFrameSize(data.root.node, data.frame?.node);
+
   // Return bundle
-  return {
+  const bundle: ComponentData = {
     // Info
     id: component.target.id,
     key: component.target.key,
-    props: writePropsAttributes(
-      new CodeBlockWriter(settings.writer),
-      {...component.propDefs},
-    ),
-    imports: writePropsImports(
-      new CodeBlockWriter(settings.writer),
-      {...component.propDefs},
-    ),
+    props: writePropsAttributes(new CodeBlockWriter(settings.writer), {...component.propDefs}),
+    imports: writePropsImports(new CodeBlockWriter(settings.writer), {...component.propDefs}),
     // Text
     code: await generateComponent(data, settings),
     docs: await generateDocs(component, settings),
     story: generateStory(component, settings),
     index: generateIndex([component], settings, false),
-    // Rect
-    width: data.frame ? data.frame.node.width : data.root.node.width,
-    height: data.frame ? data.frame.node.height : data.root.node.height,
     // Data
     assets: Object.values(data.assetData),
     icons: Array.from(data.meta.iconsUsed),
     // Meta
     info: component,
     links,
+    width,
+    height,
   };
+
+  // Profile
+  console.log(`>> [bundle] ${Date.now() - _t1}ms`, component?.name || 'unknown');
+
+  return bundle;
 }

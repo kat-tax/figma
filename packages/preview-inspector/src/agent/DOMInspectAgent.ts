@@ -14,7 +14,10 @@ export class DOMInspectAgent implements InspectAgent<HTMLElement> {
   protected unsubscribeListener?: () => void
 
   public load(): HTMLElement[] {
-    return Array.from(document.querySelectorAll('*'));
+    const componentRoot = document.getElementById('component');
+    return componentRoot 
+      ? Array.from(componentRoot.querySelectorAll('*'))
+      : [];
   }
 
   public activate({

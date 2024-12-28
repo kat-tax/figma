@@ -1,6 +1,6 @@
 {
   "name": "preview-inspector",
-  "version": "0.0.12",
+  "version": "0.0.26",
   "module": "es/index.js",
   "types": "es/index.d.ts",
   "sideEffects": false,

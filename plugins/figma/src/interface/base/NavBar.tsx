@@ -1,8 +1,8 @@
-import {Tabs, Text} from 'figma-kit';
 import {useWindowSize} from '@uidotdev/usehooks';
 import {useEffect, useState, Fragment} from 'react';
-import {Dropdown, IconNavigateBack32, IconSearch32, IconEllipsis32, IconLayerComponent16} from 'figma-ui';
-import {patch, actions} from 'interface/utils/editor/lib/Experimental';
+import {Tabs, Text, IconButton} from 'figma-kit';
+import {Dropdown, IconEllipsis32, IconLayerComponent16} from 'figma-ui';
+import {patch, actions} from 'interface/utils/editor/lib/prompts';
 import {SearchBar} from 'interface/base/SearchBar';
 import {titleCase} from 'common/string';
 
@@ -84,19 +84,25 @@ export function NavBar(props: NavBarProps) {
   }, [props.tabs, width]);
 
   return (
-    <div className={`tab-menu ${classMenu}`}>
+    <div className={`tab-menu ${classMenu} ${props.searchMode ? 'search-mode' : ''}`}>
       <Tabs.List loop aria-label="menu">
         {hasTarget
         ? <div className="tab-bar-nav">
             {hasBack &&
-              <div
-                title="Go back to project"
+              <IconButton
+                aria-label="Go back to project"
                 className="tab-btn"
-                style={{paddingTop: '1px'}}
                 onKeyDown={props.nav.gotoOverview}
                 onClick={props.nav.gotoOverview}>
-                <IconNavigateBack32/>
-              </div>
+                <svg style={{rotate: '180deg'}} width="24" height="24" fill="none" viewBox="0 0 24 24">
+                  <path
+                    fill="var(--figma-color-icon)"
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M13.146 7.146a.5.5 0 0 1 .707 0l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.707-.708L16.293 12H6.5a.5.5 0 0 1 0-1h9.793l-3.146-3.146a.5.5 0 0 1 0-.708">
+                  </path>
+                </svg>
+              </IconButton>
             }
             {props.tabs.component
               .map(page => {
@@ -120,13 +126,20 @@ export function NavBar(props: NavBarProps) {
               setSearchMode={props.setSearchMode}
             />
           : <div className="tab-bar-nav">
-              <div
+              <IconButton
+                aria-label="Enter search"
                 className="tab-btn"
-                title="Search components"
                 onKeyDown={() => props.setSearchMode(true)}
                 onClick={() => props.setSearchMode(true)}>
-                <IconSearch32/>
-              </div>
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+                  <path
+                    fill="var(--figma-color-icon)"
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M15 10.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0m-.956 4.206a5.5 5.5 0 1 1 .662-.662.5.5 0 0 1 .148.102l3 3a.5.5 0 1 1-.707.707l-3-3a.5.5 0 0 1-.103-.147"
+                  />
+                </svg>
+              </IconButton>
               {mainTabs.map(page => (
                 <Fragment key={page.toString()}>
                   <Tabs.Trigger

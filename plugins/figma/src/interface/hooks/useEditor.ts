@@ -1,4 +1,4 @@
-import {useMonaco} from 'monacopilot';
+import {useMonaco} from '@monaco-editor/react';
 import {useEffect} from 'react';
 import * as lib from 'interface/utils/editor';
 

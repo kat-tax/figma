@@ -1,12 +1,12 @@
-import MonacoReact from 'monacopilot';
+import MonacoReact from '@monaco-editor/react';
 import {Fragment} from 'react';
 import {LoadingIndicator} from 'figma-ui';
-import {MonacoBinding} from 'interface/utils/editor/lib/MonacoBinding';
+import {MonacoBinding} from 'interface/utils/editor/lib/multiplayer';
 import {ThemePicker} from 'interface/base/ThemePicker';
 import {F2RN_EDITOR_NS} from 'config/consts';
 import * as $ from 'store';
 
-import type {Theme} from 'monacopilot';
+import type {Theme} from '@monaco-editor/react';
 import type {UserSettings} from 'types/settings';
 
 interface ProjectThemeProps {
